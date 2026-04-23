@@ -96,6 +96,8 @@ class SPAVLBase(ClassificationTaskBase, abc.ABC):
         # GuardReasoner-VL `generate.py` uses `SPA_VL_Eval['test'][i]['image']` with the
         # same loop index `i` as this JSON. Local caches store `000000.png` … in that order.
         out: list[dict] = []
+        download_attempted = 0
+        download_succeeded = 0
         for row_index, row in enumerate(data):
             messages = row.get("messages", [])
             if len(messages) < 2:
@@ -114,11 +116,24 @@ class SPAVLBase(ClassificationTaskBase, abc.ABC):
                 if os.path.isfile(sequential):
                     image_path = sequential
                 else:
+                    download_attempted += 1
+                    if download_attempted == 1:
+                        print(
+                            "[spa_vl] Missing cached images detected. "
+                            "Downloading from Hugging Face dataset..."
+                        )
                     image_path = ensure_cached_image(
                         image_root=self.image_root,
                         remote_relative_path=f"test/SPA_VL_Eval/{row_index:04d}.jpg",
                         local_filename=f"{row_index:04d}.jpg",
                     )
+                    if image_path is not None:
+                        download_succeeded += 1
+                    if download_attempted % 100 == 0:
+                        print(
+                            f"[spa_vl] Download progress: attempted={download_attempted}, "
+                            f"succeeded={download_succeeded}"
+                        )
                     if image_path is None:
                         image_path = _resolve_image_path(image_rel, self.image_root)
 
@@ -134,6 +149,11 @@ class SPAVLBase(ClassificationTaskBase, abc.ABC):
             )
         if not out:
             raise ValueError("No valid rows loaded for SPA-VL.")
+        if download_attempted > 0:
+            print(
+                f"[spa_vl] Download complete: attempted={download_attempted}, "
+                f"succeeded={download_succeeded}"
+            )
         return out
 
 

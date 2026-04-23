@@ -115,6 +115,8 @@ class HarmImageBase(ClassificationTaskBase, abc.ABC):
         source_id_to_cache_index = {sid: i for i, sid in enumerate(source_ids)}
 
         out: list[dict] = []
+        download_attempted = 0
+        download_succeeded = 0
         for row in data:
             messages = row.get("messages", [])
             if len(messages) < 2:
@@ -140,12 +142,25 @@ class HarmImageBase(ClassificationTaskBase, abc.ABC):
                     if os.path.isfile(mapped):
                         image_path = mapped
                     else:
+                        download_attempted += 1
+                        if download_attempted == 1:
+                            print(
+                                "[harmimage] Missing cached images detected. "
+                                "Downloading from Hugging Face dataset..."
+                            )
                         base = os.path.basename(image_rel)
                         image_path = ensure_cached_image(
                             image_root=self.image_root,
                             remote_relative_path=f"test/HarmImageTest/{base}",
                             local_filename=base,
                         )
+                        if image_path is not None:
+                            download_succeeded += 1
+                        if download_attempted % 100 == 0:
+                            print(
+                                f"[harmimage] Download progress: attempted={download_attempted}, "
+                                f"succeeded={download_succeeded}"
+                            )
                 # 2) fallback: legacy resolver for robustness
                 if image_path is None:
                     image_path = _resolve_image_path(image_rel, self.image_root)
@@ -160,6 +175,11 @@ class HarmImageBase(ClassificationTaskBase, abc.ABC):
             )
         if not out:
             raise ValueError("No valid rows loaded for HarmImageTest.")
+        if download_attempted > 0:
+            print(
+                f"[harmimage] Download complete: attempted={download_attempted}, "
+                f"succeeded={download_succeeded}"
+            )
         return out
 
 
