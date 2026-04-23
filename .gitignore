@@ -5,6 +5,5 @@ classification_results/
 __pycache__/
 *.pyc
 venv_gr/
-xs_venv/
 .venv/
 .env
