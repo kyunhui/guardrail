@@ -68,6 +68,7 @@ echo "[INFO] Command: python -m evaluation.eval classifiers $*"
 echo
 
 cd "${ROOT_DIR}"
+PYTHONPATH="${ROOT_DIR}/evaluation${PYTHONPATH:+:${PYTHONPATH}}" \
 python -m evaluation.eval classifiers "$@"
 
 echo
