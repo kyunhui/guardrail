@@ -1,26 +1,10 @@
-# Ai2 Safety Tool 🧰 (Classification Evaluation Suite)
+# Guardrail Classification Evaluation
 
 This repository contains code for safety classifier evaluation across prompt harmfulness, response harmfulness, and response refusal tasks.
 
-- WildGuard: Open One-stop Moderation Tools for Safety Risks, Jailbreaks, and Refusals of LLMs
-  - <a href="https://arxiv.org/abs/2406.18495"><img src="https://img.shields.io/badge/📝-paper-blue"></a> <a href="https://github.com/allenai/wildguard"><img src="https://img.shields.io/badge/🔗-code-red"></a> <a href="https://huggingface.co/allenai/wildguard"><img src="https://img.shields.io/badge/🤗-wildguard (model)-green"></a> <a href="https://huggingface.co/datasets/allenai/wildguardmix"><img src="https://img.shields.io/badge/🤗-wildguardmix (data)-orange">
-  </a>
 
 This lets you compare classifier performance across text-only and multimodal safety benchmarks.
 
-<img width="610" alt="image" src="https://github.com/user-attachments/assets/7d29f65f-ab6a-4164-8adc-0c1dc860bb30">
-
-  
-## Updates
-
-- 2025-10-16: add support for BBQ, StrongReject, WMDP
-- 2025-08-29: add support for reasoning models.
-- 2024-07-06: add support for MMLU, TruthfulQA, and sorrybench classifier.
-
-## Features
-
-- Easy evaluation of **safety classifiers** on three tasks (detection of _prompt harmfulness_, _response harmfulness_, and _response refusal_) across 10+ benchmarks.
-- Easy addition of new benchmarks and models to the evaluation suite.
 
 ## Installation
 
@@ -159,11 +143,6 @@ Notes:
   - prompt: `spa_vl`
   - response: `spa_vl:response`
 
-## Acknowledgements
-
-This repository uses some code from the:
-- [Harmbench](https://github.com/centerforaisafety/HarmBench) -- in particular, code for model input templates,
-- [StrongReject](https://github.com/dsbowen/strong_reject) -- in particular, code for logit analysis on the StrongReject benchmark
 
 ## Citation
 
