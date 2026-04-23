@@ -1,6 +1,19 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# This script must be sourced to keep venv active
+# in the current interactive shell.
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  echo "[ERROR] This script must be sourced to keep the virtualenv active."
+  echo
+  echo "Use:"
+  echo "  source scripts/setup_venv_gr.sh"
+  echo
+  echo "If you only want setup (without activation persistence), run:"
+  echo "  bash scripts/setup_venv_gr.sh && source venv_gr/bin/activate"
+  exit 1
+fi
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 VENV_DIR="${ROOT_DIR}/venv_gr"

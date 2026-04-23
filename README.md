@@ -22,7 +22,7 @@ Use the helper scripts in the repo root for consistent setup and execution.
 
 ```bash
 cd /path/to/guardrail
-bash scripts/setup_venv_gr.sh
+source scripts/setup_venv_gr.sh
 ```
 
 This script:
