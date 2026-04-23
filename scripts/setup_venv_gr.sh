@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-set -euo pipefail
+# Intentionally avoid `set -euo pipefail` here because this script is sourced.
+# Enabling strict mode in a sourced script leaks shell options to the caller.
 
 # This script must be sourced to keep venv active
 # in the current interactive shell.
@@ -29,12 +30,12 @@ echo
 
 if ! command -v python3 >/dev/null 2>&1; then
   echo "[ERROR] python3 not found. Please install Python 3.10+ first."
-  exit 1
+  return 1
 fi
 
 if [[ ! -f "${REQ_FILE}" ]]; then
   echo "[ERROR] requirements.txt not found at: ${REQ_FILE}"
-  exit 1
+  return 1
 fi
 
 if [[ -d "${VENV_DIR}" ]]; then

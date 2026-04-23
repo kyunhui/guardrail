@@ -64,11 +64,11 @@ echo
 source "${VENV_DIR}/bin/activate"
 
 echo "[INFO] Running classification evaluation..."
-echo "[INFO] Command: python evaluation/eval.py classifiers $*"
+echo "[INFO] Command: python -m evaluation.eval classifiers $*"
 echo
 
 cd "${ROOT_DIR}"
-python "${EVAL_PY}" classifiers "$@"
+python -m evaluation.eval classifiers "$@"
 
 echo
 echo "[DONE] Evaluation finished."
