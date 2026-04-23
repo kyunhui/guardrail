@@ -1,0 +1,3 @@
+task_class: SPAVLResponseSafetyEval
+dataset_json_path: evaluation/tasks/classification/spa_vl/SPA_VL_Eval.json
+image_root: evaluation/tasks/classification/spa_vl/spa_eval_label1_cache

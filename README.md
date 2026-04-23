@@ -1,15 +1,12 @@
-# Ai2 Safety Tool 🧰 (Evaluation Suite) 
+# Ai2 Safety Tool 🧰 (Classification Evaluation Suite)
 
-This repository contains code for easy and comprehensive safety evaluation on generative LMs and safety moderation tools. This evaluation framework is used in safety projects at Ai2, including:
+This repository contains code for safety classifier evaluation across prompt harmfulness, response harmfulness, and response refusal tasks.
 
-- WildTeaming at Scale: From In-the-Wild Jailbreaks to (Adversarially) Safer Language Models
-  - <a href="https://arxiv.org/abs/2406.18510"><img src="https://img.shields.io/badge/📝-paper-blue"></a> <a href="https://github.com/allenai/wildteaming"><img src="https://img.shields.io/badge/🔗-code-red"></a> <a href="https://huggingface.co/allenai/llama2-7b-WildJailbreak"><img src="https://img.shields.io/badge/🤗-tulu2--7b--wildjailbreak (model)-green"></a> <a href="https://huggingface.co/allenai/llama2-13b-WildJailbreak"><img src="https://img.shields.io/badge/🤗-tulu2--13b--wildjailbreak (model)-green"></a> <a href="https://huggingface.co/datasets/allenai/wildjailbreak">
-    <img src="https://img.shields.io/badge/🤗-wildjailbreak (data)-orange"></a>
 - WildGuard: Open One-stop Moderation Tools for Safety Risks, Jailbreaks, and Refusals of LLMs
   - <a href="https://arxiv.org/abs/2406.18495"><img src="https://img.shields.io/badge/📝-paper-blue"></a> <a href="https://github.com/allenai/wildguard"><img src="https://img.shields.io/badge/🔗-code-red"></a> <a href="https://huggingface.co/allenai/wildguard"><img src="https://img.shields.io/badge/🤗-wildguard (model)-green"></a> <a href="https://huggingface.co/datasets/allenai/wildguardmix"><img src="https://img.shields.io/badge/🤗-wildguardmix (data)-orange">
   </a>
 
-This lets you to display how the performance changes across more than 14 benchmarks as below 🔥
+This lets you compare classifier performance across text-only and multimodal safety benchmarks.
 
 <img width="610" alt="image" src="https://github.com/user-attachments/assets/7d29f65f-ab6a-4164-8adc-0c1dc860bb30">
 
@@ -22,115 +19,49 @@ This lets you to display how the performance changes across more than 14 benchma
 
 ## Features
 
-- Easy evaluation of **generative language models** on list of _safety_ benchmarks and _general_ capabilities benchmarks such as MT-Bench and AlpacaEval2.
 - Easy evaluation of **safety classifiers** on three tasks (detection of _prompt harmfulness_, _response harmfulness_, and _response refusal_) across 10+ benchmarks.
 - Easy addition of new benchmarks and models to the evaluation suite.
 
 ## Installation
 
 ```bash
-conda create -n safety-eval python=3.11 && conda activate safety-eval
+conda create -n guardrail python=3.11 && conda activate guardrail
 pip install -e .
 pip install -r requirements.txt
-pip install vllm==0.9.0.1
 ```
 
-## _Generative_ LM Evaluation
+## Quick Start (Recommended Scripts)
 
-### Safety benchmarks
+Use the helper scripts in the repo root for consistent setup and execution.
 
-For all benchmarks requiring safety classification unless noted otherwise, as a default, we use the [WildGuard](https://github.com/allenai/wildguard) classifier to evaluate the safety of model outputs.
-
-- [WildGuardTest](https://arxiv.org/abs/2406.18495)
-- [Harmbench](https://arxiv.org/abs/2402.04249)
-- [ToxiGen](https://arxiv.org/abs/2203.09509): use `tomh/toxigen_roberta` as the classifier
-- [XSTest](https://arxiv.org/abs/2308.01263)
-- [JailbreakTrigger (in TrustLLM)](https://arxiv.org/abs/2401.05561)
-- [Do-anything-now](https://arxiv.org/abs/2308.03825)
-- [WildJailbreak](https://arxiv.org/abs/2406.18510) (both harmful and benign contrast sets)
-- [BBQ](https://arxiv.org/abs/2110.08193): use string parsing 
-- [StrongReject](https://arxiv.org/abs/2402.10260): use `qylu4156/strongreject-15k-v1` as the classifier
-- [WMDP](https://arxiv.org/abs/2403.03218): use string parsing
-
-**Changing classifiers for safety benchmarks**:
-
-You can change the safety classifier used for evaluation by specifying the `classifier_model_name` in the yaml file.
-For example, when you want to use the HarmBench's classifiers for evaluation on HarmBench, you can use `HarmbenchClassifier` as the `classifier_model_name`. Please check out the `evaluation/tasks/generation/harmbench/default.yaml` and `evaluation/tasks/classification/harmbench/harmbench_classsifier.yaml` to see the classifier's specification.
-
-```yaml
-# evaluation/tasks/classification/harmbench/harmbench_classsifier.yaml
-task_class: HarmbenchVanilla
-classifier_model_name: HarmbenchClassifier
-
-# evaluation/tasks/generation/harmbench/default.yaml
-task_class: HarmbenchVanilla
-classifier_model_name: WildGuard
-```
-
-Please refer to `src/classifier_models/` directory to explore the classifiers implementation.
-
-**Evaluating Reasoning Models**:
-
-The safety benchmarks can be run on reasoning models by specifying `thinker_eval` in the yaml file. If this variable is set to `["answers"]` or `["reasonings"]` it will split the model response and evaluate only the specified section. `["reasonings", "answers"]` will split the response and evaluate both separately. If evaluating a reasoning model, it is also recommended to increase the `max_new_tokens` from the default -- this can be accomplished either by passing the `hparam_overrides` argument or in the config files. 
-
-### General capabilities benchmarks
-
-Optimal safety training maintains or even improves models' general capabilities. We include general capability evaluation for monitoring this dimension of safety training.
-
-- [AlpacaEval (V2)](https://arxiv.org/abs/2404.04475)
-- [MTBench](https://arxiv.org/abs/2306.05685)
-- [GSM8K](https://arxiv.org/abs/2110.14168)
-- [Big Bench Hard (BBH)](https://arxiv.org/abs/2210.09261)
-- [Codex-Eval](https://arxiv.org/abs/2107.03374)
-- [MMLU](https://arxiv.org/abs/2009.03300)
-- [TruthfulQA](https://arxiv.org/abs/2109.07958)
-
-Support for additional benchmarks, including [IFEval](https://arxiv.org/abs/2311.07911), and [TyDiQA](https://arxiv.org/abs/2003.05002) is in progress. 
-For TydiQA, please use [open-instruct](https://github.com/allenai/open-instruct) to evaluate the models for now. 
-
-### How-to-use
-
-Below are commands to run safety and general capability benchmarking for generative LMs.  The first command can be used to run all included benchmarks for models which support vLLM. The second command can be used to select individual benchmarks for evaluation. 
-To specify a task, the syntax is `<folder>:<config_yaml>`, where `folder` is a folder under `tasks/generation` and `config_yaml` is the name of the configuration yaml file excluding `.yaml`.
+### 1) Create `venv_gr` and install dependencies
 
 ```bash
-# run all generation benchmarks by a single command. assume you are using vllm. 
-# note that you should add OPENAI_API_KEY to your environment variables when you use mtbench and alpacaeval2.
-export CUDA_VISIBLE_DEVICES={NUM_GPUS};
-python evaluation/run_all_generation_benchmarks.py \
-    --model_name_or_path allenai/tulu-2-dpo-7b \
-    --model_input_template_path_or_name tulu2 \
-    --report_output_path ./generation_results/metrics.json \
-    --save_individual_results_path ./generation_results/all.json
-    
-# run specific generation benchmarks by a single command. here, we use three benchmarks.
-python evaluation/eval.py generators \
-  --use_vllm \
-  --model_name_or_path allenai/tulu-2-dpo-7b \
-  --model_input_template_path_or_name tulu2 \
-  --tasks wildguardtest,harmbench,toxigen:tiny \
-  --report_output_path ./generation_results/metrics.json \
-  --save_individual_results_path ./generation_results/all.json
+cd /path/to/guardrail
+bash scripts/setup_venv_gr.sh
+```
 
-# run specific generation benchmarks on a reasoning model by a single command. here, we use three benchmarks.
-python evaluation/eval.py generators \
-  --use_vllm \
-  --model_name_or_path allenai/tulu-2-dpo-7b \
-  --model_input_template_path_or_name tulu2 \
-  --tasks wildguardtest:wildguard_reasoning_answer,harmbench:wildguard_reasoning_answer,toxigen:tiny_reasoning_answer \
-  --report_output_path ./generation_results/metrics.json \
-  --save_individual_results_path ./generation_results/all.json
-```
-```
+This script:
+- creates `venv_gr` if it does not exist,
+- activates it,
+- upgrades `pip/setuptools/wheel`,
+- installs dependencies from `requirements.txt`.
+
+### 2) Run classifier evaluation with `run_eval.sh`
 
 ```bash
-# run an OpenAI API model specific generation benchmarks by a single command. here, we use three benchmarks.
-python evaluation/eval.py generators \
-  --model_name_or_path openai:gpt-4 \
-  --model_input_template_path_or_name None \
-  --tasks wildguardtest,harmbench,toxigen:tiny \
-  --report_output_path ./generation_results/metrics.json \
-  --save_individual_results_path ./generation_results/all.json
+cd /path/to/guardrail
+bash scripts/run_eval.sh \
+  --model_name WildGuard \
+  --tasks wildguardtest_prompt,wildguardtest_response,wildguardtest_refusal,openai_mod \
+  --report_output_path ./classification_results/metrics.json \
+  --save_individual_results_path ./classification_results/all.json
+```
+
+To see argument help:
+
+```bash
+bash scripts/run_eval.sh
 ```
 
 ## _Safety Classifier_ Evaluation
@@ -143,6 +74,8 @@ python evaluation/eval.py generators \
 - [AegisSafetyTest](https://arxiv.org/abs/2404.05993)
 - [SimpleSafetyTests](https://arxiv.org/abs/2311.08370)
 - [Harmbench Prompt](https://arxiv.org/abs/2402.04249)
+- HarmImageTest (image-only prompt harmfulness)
+- SPA-VL Eval (multimodal prompt harmfulness)
   
 ### Response harmfulness benchmarks
 
@@ -151,6 +84,7 @@ python evaluation/eval.py generators \
 - [SafeRLHF](https://arxiv.org/abs/2406.15513)
 - [BeaverTails](https://arxiv.org/abs/2307.04657)
 - [XSTest-Resp](https://arxiv.org/abs/2406.18495)
+- SPA-VL Eval (multimodal response harmfulness)
 
 ### Response refusal benchmarks
 
@@ -160,8 +94,8 @@ python evaluation/eval.py generators \
 ### How-to-use
 
 The commands below allow for running benchmarks to evaluate quality of safety classifiers such as WildGuard and LlamaGuard. The first command can be used to run all included benchmarks, while the second can be used to run select benchmarks.
-Similar to generation evals, to specify a task, the syntax is `<folder>:<config_yaml>`,
-where `folder` is a folder under `tasks/classificaiton` and `config_yaml` is the name of the configuration yaml file excluding `.yaml`.
+To specify a task, the syntax is `<folder>:<config_yaml>`,
+where `folder` is a folder under `tasks/classification` and `config_yaml` is the name of the configuration yaml file excluding `.yaml`.
 
 ```
 
@@ -183,26 +117,55 @@ python evaluation/eval.py classifiers \
 
 ```
 
+Equivalent script form:
+
+```bash
+bash scripts/run_eval.sh \
+  --model_name WildGuard \
+  --tasks wildguardtest_prompt,wildguardtest_response,wildguardtest_refusal,openai_mod \
+  --report_output_path ./classification_results/metrics.json \
+  --save_individual_results_path ./classification_results/all.json
+```
+
+### GuardReasoner-VL-style full benchmark set (prompt/response + multimodal)
+
+If you want to run the exact set below:
+
+- Prompt: `toxicchat`, `openai_mod`, `simplesafetytests`, `harmbench`, `wildguardtest_prompt`, `harmimage`, `spa_vl`
+- Response: `harmbench:response`, `saferlhf`, `beavertails`, `xstest_response_harm`, `wildguardtest_response`, `spa_vl:response`
+
+use `evaluation/eval.py classifiers` with an explicit task list:
+
+```bash
+cd /path/to/guardrail
+export CUDA_VISIBLE_DEVICES=0
+
+python evaluation/eval.py classifiers \
+  --model_name Qwen25VLInstruct \
+  --tasks toxicchat,openai_mod,simplesafetytests,harmbench,wildguardtest_prompt,harmimage,spa_vl,harmbench:response,saferlhf,beavertails,xstest_response_harm,wildguardtest_response,spa_vl:response \
+  --report_output_path ./classification_results/guardreasoner_vl_metrics.json \
+  --save_individual_results_path ./classification_results/guardreasoner_vl_all.json \
+  --override_existing_report true
+```
+
+Notes:
+
+- `run_all_classification_benchmarks.py` currently covers text safety benchmarks only; it does not include `harmimage` or `spa_vl`.
+- For VLM classifiers (e.g., `Qwen25VLInstruct`, `LlamaGuard3Vision11B`), use a model that supports `image_path` input.
+- The multimodal tasks expect local image caches:
+  - `harmimage`: `/root/workspace/GuardReasoner-VL/data/benchmark/spa_eval_label0_cache`
+  - `spa_vl`: `/root/workspace/GuardReasoner-VL/data/benchmark/spa_eval_label1_cache`
+- `spa_vl` supports both prompt and response runs:
+  - prompt: `spa_vl`
+  - response: `spa_vl:response`
+
 ## Acknowledgements
 
 This repository uses some code from the:
 - [Harmbench](https://github.com/centerforaisafety/HarmBench) -- in particular, code for model input templates,
-- [Open-instruct](https://github.com/allenai/open-instruct) -- in particular, code for model generation (general capabilities) benchmarks.
 - [StrongReject](https://github.com/dsbowen/strong_reject) -- in particular, code for logit analysis on the StrongReject benchmark
 
 ## Citation
-
-```
-@misc{wildteaming2024,
-      title={WildTeaming at Scale: From In-the-Wild Jailbreaks to (Adversarially) Safer Language Models}, 
-      author={Liwei Jiang and Kavel Rao and Seungju Han and Allyson Ettinger and Faeze Brahman and Sachin Kumar and Niloofar Mireshghallah and Ximing Lu and Maarten Sap and Yejin Choi and Nouha Dziri},
-      year={2024},
-      eprint={2406.18510},
-      archivePrefix={arXiv},
-      primaryClass={cs.CL},
-      url={https://arxiv.org/abs/2406.18510}, 
-}
-```
 
 ```
 @misc{wildguard2024,

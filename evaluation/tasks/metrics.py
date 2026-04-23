@@ -17,6 +17,20 @@ def get_f1(numbers: list[dict[str, bool]]) -> float:
     f1 = 2 * precision * recall / (precision + recall) if precision + recall > 0 else 0
     return f1
 
+def weighted_f1_by_sample_count(per_split_f1: list[float], per_split_n: list[int]) -> float:
+    """
+    Sample-weighted mean of per-split F1 scores (same aggregation as GuardReasoner Table 4 / Table 8 text:
+    benchmarks have different sizes, so overall = sum_i (n_i * f1_i) / sum_i n_i). F1 values must be on [0, 1];
+    multiply by 100 to match the paper's percentage column.
+    """
+    if len(per_split_f1) != len(per_split_n) or not per_split_n:
+        return -1.0
+    denom = sum(per_split_n)
+    if denom == 0:
+        return -1.0
+    return sum(f * n for f, n in zip(per_split_f1, per_split_n)) / denom
+
+
 def get_bias(bias: list[int | bool | float], unknown: list[int | bool | float], accuracy = None) -> float:
     if len(bias) == 0 or len(unknown) == 0:
         return -2

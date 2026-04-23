@@ -1,0 +1,10 @@
+evaluation/tasks/classification/harmimage/spa_eval_label0_cache/
+evaluation/tasks/classification/spa_vl/spa_eval_label1_cache/
+classification_results/
+*.egg-info/
+__pycache__/
+*.pyc
+venv_gr/
+xs_venv/
+.venv/
+.env

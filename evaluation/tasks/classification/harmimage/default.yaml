@@ -1,0 +1,3 @@
+task_class: HarmImagePromptSafetyEval
+dataset_json_path: evaluation/tasks/classification/harmimage/HarmImageTest.json
+image_root: evaluation/tasks/classification/harmimage/spa_eval_label0_cache

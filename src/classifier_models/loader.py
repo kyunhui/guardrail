@@ -20,7 +20,8 @@ from src.classifier_models.gpt_refusal_classifier import GPTRefusalDetectorV0_2
 from src.classifier_models.harmbench_classifier import HarmbenchClassifier, HarmbenchValidationClassifier
 from src.classifier_models.keyword_based_refusal_classifiers import KeywordBasedRefusalClassifier
 from src.classifier_models.librai_longformer import LongformerHarmClassifier, LongformerActionClassifier
-from src.classifier_models.llama_guard import LlamaGuardUserRequest, LlamaGuardModelResponse, LlamaGuard2
+from src.classifier_models.llama_guard import LlamaGuardUserRequest, LlamaGuardModelResponse, LlamaGuard2, LlamaGuard3
+from src.classifier_models.llama_guard_vision import LlamaGuard3Vision11B
 from src.classifier_models.md_judge import MDJudgeResponseHarmClassifier
 from src.classifier_models.off_topic_classifier import GPTOffTopicDetector
 from src.classifier_models.open_instruct_gpt_classifier import OpenInstructGPTNuancedRefusalDetector, \
@@ -32,6 +33,7 @@ from src.classifier_models.wildguard import WildGuard
 from src.classifier_models.strong_reject_classifier import StrongRejectClassifier
 from src.classifier_models.strong_reject_logit_classifier import StrongRejectLogitClassifier
 from src.classifier_models.qwen_mc_match import QwenMC
+from src.classifier_models.qwen25_vl_classifier import Qwen25VLInstructSafetyClassifier
 from src.classifier_models.strong_reject_logprobs import StrongRejectLogProbs
 
 def load_classifier_model(model_name: str, **kwargs) -> SafetyClassifierBase:
@@ -56,6 +58,10 @@ def load_classifier_model(model_name: str, **kwargs) -> SafetyClassifierBase:
         return AegisLlamaGuardDefensive(**kwargs)
     elif model_name == "LlamaGuard2":
         return LlamaGuard2(**kwargs)
+    elif model_name == "LlamaGuard3":
+        return LlamaGuard3(**kwargs)
+    elif model_name in ("LlamaGuard3Vision11B", "Llama-Guard-3-11B-Vision"):
+        return LlamaGuard3Vision11B(**kwargs)
     elif model_name == "BeaverDam":
         return BeaverDam(**kwargs)
     elif model_name == "sorrybench":
@@ -66,6 +72,8 @@ def load_classifier_model(model_name: str, **kwargs) -> SafetyClassifierBase:
         return StrongRejectLogitClassifier(**kwargs)
     elif model_name == "Qwen3MC":
         return QwenMC(**kwargs)
+    elif model_name in ("Qwen25VLInstruct", "Qwen2.5-VL-Instruct-7B-Classifier"):
+        return Qwen25VLInstructSafetyClassifier(**kwargs)
     elif model_name == "StrongRejectLogProbs":
         return StrongRejectLogProbs(**kwargs)
 

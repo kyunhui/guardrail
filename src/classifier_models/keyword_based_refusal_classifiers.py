@@ -74,7 +74,7 @@ UNWANTED_WORDS = [
     "not within the scope of my training data",
     "I am not sentient and cannot provide",
     "I am a machine learning model and not a human",
-    "I can't provide"
+    "I can't provide",
     "my main goal",
     "my purpose is to ",
     "as a language AI",

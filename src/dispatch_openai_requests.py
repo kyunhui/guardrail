@@ -3,13 +3,30 @@ This file is copied and modified from https://gist.github.com/neubig/80de662fb3e
 Thanks to Graham Neubig for sharing the original code.
 '''
 
+import asyncio
+
 from openai import AsyncOpenAI, OpenAI
 from openai.types import Completion
 from openai.types.chat import ChatCompletion
 
-aclient = AsyncOpenAI()
-client = OpenAI()
-import asyncio
+# Lazy init so importing this module (e.g. for WildGuard-only eval) does not
+# require OPENAI_API_KEY until an OpenAI-backed classifier is actually used.
+_aclient: AsyncOpenAI | None = None
+_client: OpenAI | None = None
+
+
+def get_async_openai_client() -> AsyncOpenAI:
+    global _aclient
+    if _aclient is None:
+        _aclient = AsyncOpenAI()
+    return _aclient
+
+
+def get_sync_openai_client() -> OpenAI:
+    global _client
+    if _client is None:
+        _client = OpenAI()
+    return _client
 from typing import Any, List, Dict, Callable
 from tenacity import retry, stop_after_attempt, wait_exponential
 
@@ -38,6 +55,7 @@ async def dispatch_openai_chat_requests(
     Returns:
         List of responses from OpenAI API.
     """
+    aclient = get_async_openai_client()
     async_responses = [
         aclient.chat.completions.create(model=model,
         messages=x,
@@ -61,6 +79,7 @@ async def dispatch_openai_prompt_requests(
     Returns:
         List of responses from OpenAI API.
     """
+    aclient = get_async_openai_client()
     async_responses = [
         aclient.completions.create(model=model,
         prompt=x,
@@ -71,6 +90,7 @@ async def dispatch_openai_prompt_requests(
 
 
 def get_openai_chat_response_sync(prompt: str, model: str, **completion_kwargs) -> ChatCompletion:
+    client = get_sync_openai_client()
     chat_completion = client.chat.completions.create(
         messages=[
             {"role": "user", "content": prompt}

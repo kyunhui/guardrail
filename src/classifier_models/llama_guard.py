@@ -1,4 +1,5 @@
 from abc import ABC
+import re
 
 import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM
@@ -12,12 +13,14 @@ class LlamaGuard2(SafetyClassifierBase):
     LlamaGuard2 can classify both prompt and response harmfulness. If only "prompt" fields are in the inputs, it will only do prompt_harmfulness.
     If both "prompt" and "response" fields are in the inputs, it will classify both prompt_harmfulness and response_harmfulness.
     """
+    HF_MODEL_ID = "meta-llama/Meta-Llama-Guard-2-8B"
+
     def __init__(self, batch_size: int = 4, **kwargs):
         super().__init__(batch_size)
         self.load_model()
 
     def load_model(self):
-        self.model_name = "meta-llama/Meta-Llama-Guard-2-8B"
+        self.model_name = type(self).HF_MODEL_ID
         self.model = AutoModelForCausalLM.from_pretrained(self.model_name, device_map="auto")
         self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)
         self.tokenizer.padding_side = "left"
@@ -102,6 +105,120 @@ class LlamaGuard2(SafetyClassifierBase):
             )
             outputs.append(output)
         return outputs
+
+
+class LlamaGuard3(LlamaGuard2):
+    """
+    Llama Guard 3 8B (text), HF id ``meta-llama/Llama-Guard-3-8B`` (paper: LLaMA 3.1–based guard).
+
+    **GuardReasoner (arXiv:2501.18492) Table 4 alignment (response harmfulness):**
+    - **Prompt / format:** Official model chat template only — ``apply_chat_template`` on
+      ``[user: prompt]`` / ``[user, assistant]`` turns (same as Meta; not the GuardReasoner CoT template).
+    - **Decoding:** Deterministic generation ``do_sample=False`` (baseline appendix uses each model's
+      reference implementation; Meta documents greedy classification-style decoding).
+    - **Precision:** BFloat16 weights where supported (paper trains / reports BF16 on H100-class hardware).
+    - **Context:** ``max_sequence_length`` default 8192 so long prompt+response pairs are not truncated as
+      aggressively as 4000 (LG3 supports 128K; raise if you have the VRAM).
+    - **Generation cap:** ``max_new_tokens`` default 128 so the model can emit ``safe``/``unsafe`` plus the
+      optional comma-separated violation line per the LG3 card.
+
+    **Table 4 benchmarks in this repo (classification tasks):**
+    ``harmbench:response``, ``saferlhf``, ``beavertails``, ``xstest_response_harm``, ``wildguardtest_response``.
+    Weighted average F1 (harmful = positive) uses sample counts per split; see Table 8 in the paper and
+    ``evaluation.tasks.metrics.weighted_f1_by_sample_count`` (use your actual ``len(data)`` per run if splits differ).
+    """
+    HF_MODEL_ID = "meta-llama/Llama-Guard-3-8B"
+
+    def __init__(self, batch_size: int = 4, **kwargs):
+        self.max_sequence_length = int(kwargs.pop("max_sequence_length", 8192))
+        self.max_new_tokens = int(kwargs.pop("max_new_tokens", 128))
+        dtype = kwargs.pop("torch_dtype", None)
+        self._lg3_torch_dtype = dtype if dtype is not None else torch.bfloat16
+        super().__init__(batch_size=batch_size, **kwargs)
+
+    def load_model(self):
+        self.model_name = type(self).HF_MODEL_ID
+        dtype = self._lg3_torch_dtype
+        try:
+            self.model = AutoModelForCausalLM.from_pretrained(
+                self.model_name,
+                device_map="auto",
+                torch_dtype=dtype,
+            )
+        except (RuntimeError, ValueError, TypeError):
+            self.model = AutoModelForCausalLM.from_pretrained(
+                self.model_name,
+                device_map="auto",
+                torch_dtype=torch.float16,
+            )
+        self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)
+        self.tokenizer.padding_side = "left"
+        self.tokenizer.pad_token = self.tokenizer.eos_token
+        self.safe_loc = torch.tensor([self.tokenizer.encode("safe")[-1]]).unsqueeze(-1).to("cuda")
+        self.unsafe_loc = torch.tensor([self.tokenizer.encode("unsafe")[-1]]).unsqueeze(-1).to("cuda")
+
+    @staticmethod
+    def _parse_first_line_safe_unsafe(decoded: str) -> str | None:
+        text = decoded.strip()
+        if not text:
+            return None
+        first_line = text.split("\n")[0].strip().lower()
+        if re.match(r"unsafe\b", first_line):
+            return "unsafe"
+        if re.match(r"safe\b", first_line):
+            return "safe"
+        return None
+
+    @torch.inference_mode()
+    def _llama_guard_classify(self, conversations: list[list[dict[str, str]]]) -> tuple[list[float], list[float]]:
+        formatted_inputs: list[str] = [self.tokenizer.apply_chat_template(conversation, tokenize=False) for conversation in conversations]  # type: ignore
+        assert all(isinstance(item, str) for item in formatted_inputs)
+        encoded_inputs = self.tokenizer.batch_encode_plus(
+            formatted_inputs,
+            return_tensors="pt",
+            padding=True,
+            truncation=True,
+            max_length=self.max_sequence_length,
+        ).to("cuda")
+
+        pad_id = self.tokenizer.pad_token_id
+        if pad_id is None:
+            pad_id = self.tokenizer.eos_token_id
+
+        eos_id = getattr(self.model.generation_config, "eos_token_id", None)
+        if eos_id is None:
+            eos_id = self.tokenizer.eos_token_id
+
+        gen_kwargs: dict = {
+            "max_new_tokens": self.max_new_tokens,
+            "do_sample": False,
+            "pad_token_id": pad_id,
+        }
+        if eos_id is not None:
+            gen_kwargs["eos_token_id"] = eos_id
+
+        gen_ids = self.model.generate(**encoded_inputs, **gen_kwargs)
+        prompt_width = encoded_inputs["input_ids"].shape[1]
+        new_ids = gen_ids[:, prompt_width:]
+
+        safe_probs: list[float] = []
+        unsafe_probs: list[float] = []
+        for row in new_ids:
+            row_list = row.tolist()
+            while row_list and row_list[-1] in (pad_id, self.tokenizer.eos_token_id):
+                row_list.pop()
+            decoded = self.tokenizer.decode(row_list, skip_special_tokens=True)
+            label = self._parse_first_line_safe_unsafe(decoded)
+            if label == "unsafe":
+                safe_probs.append(0.01)
+                unsafe_probs.append(0.99)
+            elif label == "safe":
+                safe_probs.append(0.99)
+                unsafe_probs.append(0.01)
+            else:
+                safe_probs.append(0.5)
+                unsafe_probs.append(0.5)
+        return safe_probs, unsafe_probs
 
 
 class LlamaGuardBase(SafetyClassifierBase, ABC):
