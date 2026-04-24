@@ -111,6 +111,12 @@ bash scripts/run_eval.sh \
   --save_individual_results_path ./classification_results/all.json
 ```
 
+Task argument parsing note:
+
+- Pass `--tasks` as a single comma-separated string (recommended with quotes), especially when using config-style tasks like `harmbench:response` or `spa_vl:response`.
+- Example: `--tasks "harmbench,harmbench:response"` (or `--tasks "spa_vl,spa_vl:response"`).
+- If task parsing is broken, `harmbench:response` can be misinterpreted as a model/repo id and raise `HFValidationError`.
+
 ### GuardReasoner-VL-style full benchmark set (prompt/response + multimodal)
 
 If you want to run the exact set below:
